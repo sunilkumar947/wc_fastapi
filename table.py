@@ -5,11 +5,10 @@ import psutil
 import requests
 import win32gui
 import win32process
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QTableWidgetItem, QPushButton,
-    QVBoxLayout, QWidget, QLabel, QTableWidget
-)
+from PyQt6.QtCore import Qt, QThread, pyqtSignal 
+from PyQt6.QtWidgets import (QTableWidgetItem,QVBoxLayout, QWidget,QTableWidget)
+from PyQt6.QtWidgets import QHeaderView, QSizePolicy, QAbstractScrollArea
+
 
 def get_active_window_process_name():
     try:
@@ -25,14 +24,14 @@ def get_active_window_process_name():
 class AppTrackerThread(QThread):
     update_signal = pyqtSignal(str, int)  # app_name, duration_seconds
 
-    def __init__(self, main_window=None):
+    def __init__(self,user_id,main_window=None):
         super().__init__()
         self.running = True
         self.app_durations = {}  # {app_name: seconds}
         self.last_app = None
         self.last_time = time.time()
-        self.user_id = "1234"  # Replace with dynamic user ID if needed
-        self.api_url = "http://YOUR_EC2_PUBLIC_IP:5000/api/usage"  # Replace with your Flask API URL
+        self.user_id =  user_id  # Replace with dynamic user ID if needed
+        self.api_url = "http://16.170.141.240:5000/api/app_usage"  # Replace with your Flask API URL
         self.main_window = main_window
 
     def run(self):
@@ -76,8 +75,9 @@ class AppTrackerThread(QThread):
 
 class TableWidget(QWidget):
 
-    def __init__(self):
+    def __init__(self,user_id):
         super().__init__()
+        self.user_id = user_id
 
         self.table = QTableWidget(self)
         self.table.setColumnCount(4)
@@ -166,7 +166,7 @@ class TableWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self.table)
 
-        self.tracker_thread = AppTrackerThread()
+        self.tracker_thread = AppTrackerThread(self.user_id)
         self.tracker_thread.update_signal.connect(self.update_table)
         self.tracker_thread.start()
         

@@ -7,7 +7,7 @@ import requests
 
 
 class LoginWindow(QDialog):
-    api_base_url = "http://13.61.186.99:5000"
+    api_base_url = "http://16.170.141.240:5000"
     def __init__(self, api_base_url):
         super().__init__()
         self.setWindowTitle("Login")
@@ -51,15 +51,17 @@ class LoginWindow(QDialog):
         password = self.password_input.text().strip()
 
         if not username or not password:
-            QMessageBox.warning(self, "Input Error", "Username and password cannot be empty.")
+            QMessageBox.warning(self, "Input Error", "Username and password cannot be empty or contain only spaces..")
             return
 
         try:
-            response = requests.post(f"{self.api_base_url}/users", json={
+            print("username:",username)
+            print("password:",password)
+            response = requests.post(f"{self.api_base_url}/users/login", json={
                 "username": username,
                 "password": password
-            })
-
+            },headers={"Content-Type": "application/json"} )
+            print(response)
             if response.status_code == 200:
                 data = response.json()
                 if data.get("status") == "Inactive":

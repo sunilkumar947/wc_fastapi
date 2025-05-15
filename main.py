@@ -27,38 +27,14 @@ if __name__ == "__main__":
     try:
         print("in")
         app = QApplication(sys.argv)
-        API_BASE_URL = "http://13.61.186.99:5000"
+        API_BASE_URL = "http://16.170.141.240:5000"
 
         # Resource paths (icon)
         icon_path = resource_path("assets/images/icon.ico")
 
-        # Database handler
-        # db_handler = DatabaseHandler(
-        #     host="localhost",
-        #     user="root",
-        #     password="root",
-        #     database="tracker_db"
-        # )
-        # db_handler = DatabaseHandler(
-        #     host="sql12.freesqldatabase.com",
-        #     user="sql12775997",
-        #     password="KADxumQrpE",
-        #     database="sql12775997"
-        # )
-        # if not db_handler.connection:
-        #     # logging.error("Database connection failed. Exiting.", exc_info=True)
-        #     sys.exit(1)
-
         # Login window
         login_window = LoginWindow(API_BASE_URL)
-        login_window.setWindowIcon(QIcon(icon_path))
-        # tray_handler = TrayHandler(icon_path)
-        # tray_handler.show_signal.connect(login_window.show)
-        # tray_handler.hide_signal.connect(login_window.hide)
-        # tray_handler.exit_signal.connect(app.quit)
-        # tray_thread = threading.Thread(target=tray_handler.setup_tray, daemon=True)
-        # tray_thread.start()
-        
+        login_window.setWindowIcon(QIcon(icon_path))    
         
         if login_window.exec():  # If login is successful
             login_window.close() 

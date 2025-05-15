@@ -4,8 +4,11 @@ from PyQt6.QtGui import QIcon
 from main import resource_path
 
 class ForgotCredentialsWindow(QDialog):
-    def __init__(self):
+    def __init__(self,api_base_url):
         super().__init__()
+        
+        self.api_base_url = api_base_url
+        
         self.setWindowTitle("Reset Password")
         self.setFixedSize(400, 200)
 
@@ -45,7 +48,8 @@ class ForgotCredentialsWindow(QDialog):
             return
 
         try:
-            response = requests.post("http://<YOUR_SERVER_IP>/api/retrieve-username", json={"email": email})
+            f"{self.api_base_url}/users/login"
+            response = requests.post(f"{self.api_base_url}/api/retrieve-username", json={"email": email})
             if response.status_code == 200:
                 username = response.json().get("username")
                 QMessageBox.information(self, "Username Retrieved", f"Your username is: {username}")
@@ -67,7 +71,7 @@ class ForgotCredentialsWindow(QDialog):
             return
 
         try:
-            response = requests.post("http://<YOUR_SERVER_IP>/api/reset-password", json={
+            response = requests.post(f"{self.api_base_url}/api/reset-password", json={
                 "email": email,
                 "new_password": new_password
             })

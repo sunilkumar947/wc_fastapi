@@ -8,7 +8,7 @@ import bcrypt
 
 
 class RegistrationWindow(QDialog):
-    api_base_url = "http://13.61.186.99:5000"
+    api_base_url = "http://16.170.141.240:5000"
     def __init__(self, api_base_url):
         super().__init__()
         self.setWindowTitle("Register")
@@ -74,15 +74,15 @@ class RegistrationWindow(QDialog):
 
         try:
             user_id = str(uuid.uuid4())
-            hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+            # hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
             # Sending data to Flask API
-            response = requests.post(f"{self.api_base_url}/users", json={
+            response = requests.post(f"{self.api_base_url}/users/register", json={
                 "user_id": user_id,
                 "username": username,
                 "email": email,
                 "phone_no": phone_no,
-                "user_password": hashed_password
+                "password": password
             })
 
             if response.status_code == 200:

@@ -1,5 +1,5 @@
-import requests
 from datetime import datetime
+import time
 from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QFrame, QPushButton, QMessageBox
 from PyQt6.QtCore import QDateTime, QTimer, Qt
 from PyQt6.QtGui import QIcon, QFont
@@ -12,32 +12,31 @@ from PyQt6.QtCore import QStandardPaths
 from PIL import ImageGrab
 import os
 import winreg
-
+import requests
 
 def get_documents_path():
-    documents_path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
-    return documents_path
+    return QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
 
 class MainWindow(QMainWindow):
-    def __init__(self, icon_path, db_handler, user_id, username):
+    def __init__(self, icon_path, api_base_url, user_id, username):
         super().__init__()
         print("MainWindow initialized.")
 
-        self.screenshot_timer = QTimer(self)
-        self.screenshot_timer.timeout.connect(self.take_screenshot)
-        self.screenshot_timer.start(60000)    
-        
         self.user_id = user_id
         self.username = username
-        print(self.username, '???????????????????????????????')
-        self.db_handler = db_handler
+        self.api_base_url = api_base_url
+
         self.setWindowTitle("Work Tracker")
         self.setWindowIcon(QIcon(icon_path))
         self.setGeometry(100, 100, 800, 600)
         self.setFixedSize(800, 600)
 
+        # self.screenshot_timer = QTimer(self)
+        # self.screenshot_timer.timeout.connect(self.take_screenshot)
+        # self.screenshot_timer.start(60000)  # every 60 sec
+
         central_widget = QWidget(self)
-        central_widget.setStyleSheet("background-color: #2b2f38;") 
+        central_widget.setStyleSheet("background-color: #2b2f38;")
         self.setCentralWidget(central_widget)
 
         main_layout = QVBoxLayout(central_widget)
@@ -45,16 +44,14 @@ class MainWindow(QMainWindow):
         header_layout = QHBoxLayout()
         login_break_layout = QHBoxLayout()
 
-        # Title Label
+        # Title
         title_label = QLabel("Work Tracker Dashboard", self)
         title_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         title_label.setStyleSheet("color: white; padding: 10px;")
-        
-        # shows user name and id
-        self.user_info_label = QLabel(f"👤 {self.username} | ID: {self.user_id}", self)
+
+        # User Info
+        self.user_info_label = QLabel(f"User: {self.username} | ID: {self.user_id}", self)
         self.user_info_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        self.user_info_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.user_info_label.setStyleSheet("color: white; padding: 10px;")
 
         # Logout Button
@@ -73,26 +70,23 @@ class MainWindow(QMainWindow):
         """)
         self.logout_button.clicked.connect(self.confirm_logout)
 
-        # Add title and logout button to the header layout
+        # Layouts
         username_layout.addWidget(self.user_info_label)
-        
         header_layout.addWidget(title_label)
         header_layout.addStretch()
         header_layout.addWidget(self.logout_button)
-        
-        # Divider Line
+
         divider = QFrame()
         divider.setFrameShape(QFrame.Shape.HLine)
-        divider.setFrameShadow(QFrame.Shadow.Sunken)
         divider.setStyleSheet("background-color: #555; height: 2px;")
 
+        # Widgets
         self.date_time_widget = DateTimeWidget()
         self.break_widget = BreakWidget()
         self.screen_time_widget = ScreenTimeWidget(self.break_widget)
         self.login_time_widget = LoginTimeWidget(self.break_widget, self.screen_time_widget)
-        self.table_widget = TableWidget()
-       
-        # Widget Styling
+        self.table_widget = TableWidget(self.user_id)
+
         widget_style = """
             QWidget {
                 border-radius: 10px;
@@ -127,36 +121,43 @@ class MainWindow(QMainWindow):
         login_break_layout.setSpacing(250)
         main_layout.setSpacing(10)
 
-        # Timer to update data
-        self.update_timer = QTimer(self)
-        self.update_timer.timeout.connect(self.update_data)
-        self.update_timer.start(60000)
-
+        # Data update every 60 sec
+        # self.update_timer = QTimer(self)
+        # self.update_timer.timeout.connect(self.update_data)
+        # self.update_timer.timeout.connect(self.take_screenshot)
+        # self.update_timer.start(60000)
+        # self.update_data()
+        # self.take_screenshot()
+          
+    
     def update_data(self):
-        """Update data in the database via Flask API."""
         date, current_time = self.date_time_widget.get_date_time()
         login_time = self.login_time_widget.get_login_time()
         break_time = self.break_widget.get_break_time()
         screen_time = self.screen_time_widget.get_screen_time()
 
-        activity_payload = {
+        # Send work_time to Flask
+        payload = {
             "user_id": self.user_id,
             "date": date,
             "login_time": login_time,
             "break_time": break_time,
             "screen_time": screen_time,
-            "current_time": current_time
+            "logout_time": current_time
         }
-
+        print("payload",payload)
+        
         try:
-            res = requests.post("http://<your-flask-api>/api/activity_log", json=activity_payload)
-            print("Activity log sent:", res.status_code)
+            requests.post(f"{self.api_base_url}/api/work_time", json=payload)
+            print("Work time data sent to server.")
+            
         except Exception as e:
-            print("Error sending activity log:", e)
+            print(f"Error sending work time: {e}")
 
+        # Send app_usage to Flask
         app_usage_data = self.table_widget.get_table_data()
         for app_name, url, duration in app_usage_data:
-            app_payload = {
+            usage_payload = {
                 "user_id": self.user_id,
                 "app_name": app_name,
                 "url": url,
@@ -164,19 +165,15 @@ class MainWindow(QMainWindow):
                 "date": date
             }
             try:
-                res = requests.post("http://<your-flask-api>/api/app_usage", json=app_payload)
-                print("App usage sent:", res.status_code)
+                requests.post(f"{self.api_base_url}/api/app_usage", json=usage_payload)
             except Exception as e:
-                print("Error sending app usage:", e)
+                print(f"Error sending app usage: {e}")
 
     def confirm_logout(self):
-        """Shows a styled confirmation dialog before logging out."""
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle("Confirm Logout")
         msg_box.setText("Are you sure you want to logout?")
         msg_box.setIcon(QMessageBox.Icon.Warning)
-
-        # Apply dark theme styling to QMessageBox
         msg_box.setStyleSheet("""
             QMessageBox {
                 background-color: #3a434d;
@@ -189,92 +186,58 @@ class MainWindow(QMainWindow):
                 padding: 5px 15px;
                 font-weight: bold;
             }
-            QPushButton:hover {
-                opacity: 0.9;
-            }
         """)
-
-        # Customize buttons
         yes_button = msg_box.addButton("Logout", QMessageBox.ButtonRole.AcceptRole)
         yes_button.setStyleSheet("background-color: #d9534f; color: white;")
-        
         no_button = msg_box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
         no_button.setStyleSheet("background-color: #555; color: white;")
 
         msg_box.exec()
-
         if msg_box.clickedButton() == yes_button:
             self.logout()
 
     def logout(self):
-        """Handles user logout and application close."""
         logout_time = QDateTime.currentDateTime().toString("hh:mm:ss")
         self.login_time_widget.save_login_time(logout_time=logout_time)
-        print(f"User logged out at {logout_time}. Closing application...")
-
-        # Send logout event to Flask API
-        try:
-            res = requests.post("http://<your-flask-api>/api/logout", json={"user_id": self.user_id, "logout_time": logout_time})
-            print("Logout event sent:", res.status_code)
-        except Exception as e:
-            print("Error sending logout event:", e)
-
+        print(f"User logged out at {logout_time}. Closing app...")
         self.close()
 
     def closeEvent(self, event):
-        """Handles application close event."""
-        print("MainWindow is closing.")
         logout_time = QDateTime.currentDateTime().toString("hh:mm:ss")
         self.login_time_widget.save_login_time(logout_time=logout_time)
-        print(f"Logout time: {logout_time}")
+        print(f"Logout time saved: {logout_time}")
         event.accept()
 
     def get_onedrive_documents_path(self):
-        """Fetch the OneDrive Documents folder path dynamically."""
         try:
             key = winreg.HKEY_CURRENT_USER
             sub_key = r"Software\Microsoft\OneDrive"
             with winreg.OpenKey(key, sub_key) as reg_key:
                 onedrive_path, _ = winreg.QueryValueEx(reg_key, "UserFolder")
-                print(f"Registry OneDrive Path: {onedrive_path}")
-            # Append "Documents" to store in OneDrive/Documents
-            documents_path = os.path.join(onedrive_path, "Documents")
-            return documents_path
+            return os.path.join(onedrive_path, "Documents")
         except Exception as e:
             print(f"Error getting OneDrive path: {e}")
             return None
 
     def take_screenshot(self):
         try:
-            onedrive_documents_path = self.get_onedrive_documents_path()
-            
-            if not onedrive_documents_path:
-                print("OneDrive not found! Saving to local Documents folder instead.")
-                onedrive_documents_path = get_documents_path()  # Fallback to local Documents
+            folder_path = self.get_onedrive_documents_path() or get_documents_path()
+            screenshot_folder = os.path.join(folder_path, "WorkTracker", "screenshots", self.user_id)
+            os.makedirs(screenshot_folder, exist_ok=True)
 
-            user_id = self.user_id  
-            screenshot_folder = os.path.join(onedrive_documents_path, "WorkTracker", "screenshots", user_id)
-            
-            if not os.path.exists(screenshot_folder):
-                os.makedirs(screenshot_folder)
-
-            current_timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            screenshot_path = os.path.join(screenshot_folder, f"screenshot_{current_timestamp}.png")
+            timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+            screenshot_path = os.path.join(screenshot_folder, f"screenshot_{timestamp}.png")
 
             screenshot = ImageGrab.grab()
             screenshot.save(screenshot_path)
-            print(f"Screenshot saved to {screenshot_path}")
-    
-            # Upload screenshot to Flask API
-            files = {'screenshot': open(screenshot_path, 'rb')}
+
+            # Send screenshot path + time to Flask
             data = {
                 "user_id": self.user_id,
-                "timestamp": current_timestamp
+                "screenshot_path": screenshot_path,
+                "timestamp": timestamp
             }
-            try:
-                res = requests.post("http://<your-flask-api>/api/screenshot", files=files, data=data)
-                print("Screenshot uploaded:", res.status_code)
-            except Exception as e:
-                print("Error uploading screenshot:", e)
+            requests.post(f"{self.api_base_url}/api/screenshots", json=data)
+            print(f"Screenshot saved and sent: {screenshot_path}")
         except Exception as e:
-            print(f"Error while taking screenshot: {e}")
+            print(f"Screenshot error: {e}")

@@ -174,16 +174,16 @@ def admin_login():
         return jsonify({"error": "Invalid admin credentials"}), 401
 
 
-@app.route('/users', methods=['POST'])
+@app.route('/users/register', methods=['POST'])
 def register_user():
     data = request.json
     user_id = data.get('user_id')
     username = data.get('username')
     email = data.get('email')
     phone_no = data.get('phone_no')
-    user_password = data.get('user_password')  # Already hashed from PyQt
+    password = data.get('password')  
 
-    if not all([user_id, username, email, phone_no, user_password]):
+    if not all([user_id, username, email, phone_no, password]):
         return jsonify({'error': 'All fields are required.'}), 400
 
     try:
@@ -195,12 +195,12 @@ def register_user():
         if cursor.fetchone():
             conn.close()
             return jsonify({'error': 'Email already registered.'}), 409
-
+        hashed_password = generate_password_hash(password)
         # Insert new user
         cursor.execute("""
             INSERT INTO users (user_id, username, email, phone_no, user_password, status)
             VALUES (%s, %s, %s, %s, %s, %s)
-        """, (user_id, username, email, phone_no, user_password, 'active'))
+        """, (user_id, username, email, phone_no, hashed_password, 'active'))
         conn.commit()
         conn.close()
 
@@ -210,13 +210,18 @@ def register_user():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/users', methods=['POST'])
+@app.route('/users/login', methods=['POST'])
 def user_login():
     data = request.json
     print("login data:", data)
-    
+    if data is None:
+        return jsonify({"message": "No JSON received", "raw_data": request.data.decode(), "headers": dict(request.headers)}), 400
+
     username = data.get('username')
     password = data.get('password')
+    print("USERNAME:",username)
+    print("PASSWORD:",password)
+    
 
     if not username or not password:
         return jsonify({"message": "Username and password are required."}), 400
@@ -233,7 +238,7 @@ def user_login():
         if not user:
             return jsonify({"message": "User not found."}), 404
 
-        stored_hash = user.get('user_password')
+        stored_hash = user.get('password')
 
         if not check_password_hash(stored_hash, password):
             return jsonify({"message": "Incorrect password."}), 401
@@ -247,6 +252,80 @@ def user_login():
 
     except Exception as e:
         return jsonify({"message": f"Login failed. Error: {str(e)}"}), 500
+
+
+@app.route('/api/work_time', methods=['POST'])
+def save_work_time():
+    data = request.get_json()
+
+    user_id = data.get('user_id')
+    date = data.get('date')
+    login_time = data.get('login_time')
+    break_time = data.get('break_time')
+    screen_time = data.get('screen_time')
+    logout_time = data.get('logout_time')
+
+    if not all([user_id, date , login_time,break_time,screen_time,logout_time]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = """
+        INSERT INTO work_time (user_id, date, login_time, break_time, screen_time, current_time)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """
+    cursor.execute(query, (user_id, date, login_time, break_time, screen_time, logout_time))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Work time saved successfully"}), 200
+
+
+
+@app.route('/api/app_usage', methods=['POST'])
+def save_app_usage():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    app_name = data.get('app_name')
+    url = data.get('url')
+    duration = data.get('duration')
+    date = data.get('date')
+
+    if not all([user_id, app_name,url, duration, date]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = """
+        INSERT INTO app_usage (user_id, app_name, url, duration, date)
+        VALUES (%s, %s, %s, %s, %s)
+    """
+    cursor.execute(query, (user_id, app_name, url, duration, date))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "App usage saved successfully"}), 200
+
+
+@app.route('/api/screenshots', methods=['POST'])
+def save_screenshot():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    screenshot_path = data.get('screenshot_path')
+    timestamp = data.get('timestamp')
+
+    if not all([user_id, screenshot_path, timestamp]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = """
+        INSERT INTO screenshots (user_id, screenshot_path, timestamp)
+        VALUES (%s, %s, %s)
+    """
+    cursor.execute(query, (user_id, screenshot_path, timestamp))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Screenshot saved successfully"}), 200
+
 
 
 if __name__ == '__main__':

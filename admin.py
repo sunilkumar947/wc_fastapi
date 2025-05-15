@@ -10,10 +10,10 @@ from cht_genai import SQLChatbot
 
 class AdminPanel(QMainWindow):
     
-    def __init__(self, db_handler):
+    def __init__(self,api_base_url, db_handler):
         print('opening adminpanel')
         super().__init__()
-        
+        self.api_base_url = api_base_url
         self.db_handler = db_handler
         print('SQLchatbot')
         self.chatbot = SQLChatbot(db_handler)
