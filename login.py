@@ -7,7 +7,7 @@ import requests
 
 
 class LoginWindow(QDialog):
-    api_base_url = "http://16.170.141.240:5000"
+    api_base_url = "http://13.60.213.82:5000"
     def __init__(self, api_base_url):
         super().__init__()
         self.setWindowTitle("Login")
@@ -81,6 +81,7 @@ class LoginWindow(QDialog):
             QMessageBox.critical(self, "Network Error", f"Could not connect to the server.\n\nError: {e}")
 
     def open_admin_login(self):
+        print("in opne admin")
         admin_login = AdminLoginWindow(self.api_base_url)
         if admin_login.exec():
             QMessageBox.information(self, "Admin Login", "Welcome, Admin!")

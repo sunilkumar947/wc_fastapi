@@ -2,7 +2,7 @@ import requests
 import bcrypt
 
 class APIHandler:
-    api_base_url = "http://16.170.141.240:5000"
+    api_base_url = "http://13.60.213.82:5000"
     def __init__(self, api_base_url):
         self.api_base_url = api_base_url.rstrip("/")
         print("APIHandler initialized with URL:", self.api_base_url)
@@ -17,6 +17,7 @@ class APIHandler:
             return False
 
     def fetch_all_users(self):
+        print("apihandler fetch all user")
         try:
             response = requests.get(f"{self.api_base_url}/users")
             return response.json() if response.ok else []

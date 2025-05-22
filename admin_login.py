@@ -10,8 +10,9 @@ class AdminLoginWindow(QDialog):
         "password": "admin123"
     }
 
-    def __init__(self):
+    def __init__(self,api_base_url):
         super().__init__()
+        self.api_base_url = api_base_url
         self.setWindowTitle("Admin Login")
         self.setFixedSize(400, 200)
 
@@ -45,7 +46,7 @@ class AdminLoginWindow(QDialog):
 
         try:
             response = requests.post(
-                "http://localhost:5000/api/admin-login",
+                "http://13.60.213.82:5000/api/admin-login",
                 json={"username": admin_username, "password": admin_password}
             )
             if response.status_code == 200:

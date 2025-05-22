@@ -74,7 +74,7 @@ def get_all_users():
     cursor.execute("SELECT username, user_id FROM users")
     return jsonify(cursor.fetchall())
 
-@app.route('/users/<int:user_id>', methods=['GET'])
+@app.route('/users/<user_id>', methods=['GET'])
 def get_user_details(user_id):
     cursor.execute("SELECT username, email, user_id, status FROM users WHERE user_id = %s", (user_id,))
     result = cursor.fetchone()
@@ -110,10 +110,11 @@ def update_password():
     conn.commit()
     return jsonify({'status': 'password updated'})
 
-@app.route('/work_time/<int:user_id>', methods=['GET'])
+@app.route('/work_time/<user_id>', methods=['GET'])
 def get_work_time(user_id):
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
+    
     if start_date and end_date:
         cursor.execute("""
             SELECT date, login_time, break_time, screen_time, logout_time
@@ -125,9 +126,18 @@ def get_work_time(user_id):
             SELECT date, login_time, break_time, screen_time, logout_time
             FROM work_time WHERE user_id = %s
         """, (user_id,))
-    return jsonify(cursor.fetchall())
+    
+    rows = cursor.fetchall()
+    
+    # Convert timedelta to string
+    for row in rows:
+        for key in ['break_time', 'screen_time']:
+            if row[key] is not None:
+                row[key] = str(row[key])
+    
+    return jsonify(rows)
 
-@app.route('/app_usage/<int:user_id>', methods=['GET'])
+@app.route('/app_usage/<user_id>', methods=['GET'])
 def get_app_usage(user_id):
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')

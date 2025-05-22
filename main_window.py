@@ -31,9 +31,9 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 800, 600)
         self.setFixedSize(800, 600)
 
-        # self.screenshot_timer = QTimer(self)
-        # self.screenshot_timer.timeout.connect(self.take_screenshot)
-        # self.screenshot_timer.start(60000)  # every 60 sec
+        self.screenshot_timer = QTimer(self)
+        self.screenshot_timer.timeout.connect(self.take_screenshot)
+        self.screenshot_timer.start(60000)  # every 60 sec
 
         central_widget = QWidget(self)
         central_widget.setStyleSheet("background-color: #2b2f38;")
@@ -122,11 +122,11 @@ class MainWindow(QMainWindow):
         main_layout.setSpacing(10)
 
         # Data update every 60 sec
-        # self.update_timer = QTimer(self)
-        # self.update_timer.timeout.connect(self.update_data)
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(self.update_data)
         # self.update_timer.timeout.connect(self.take_screenshot)
-        # self.update_timer.start(60000)
-        # self.update_data()
+        self.update_timer.start(60000)
+        self.update_data()
         # self.take_screenshot()
           
     

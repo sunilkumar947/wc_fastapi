@@ -6,17 +6,17 @@ from PyQt6.QtCore import Qt, QDate,QTimer
 from PyQt6.QtGui import QPixmap
 # from cht_openai import SQLChatbot
 from cht_genai import SQLChatbot
-
+from database import APIHandler 
 
 class AdminPanel(QMainWindow):
     
-    def __init__(self,api_base_url, db_handler):
+    def __init__(self, api_base_url):
         print('opening adminpanel')
         super().__init__()
-        self.api_base_url = api_base_url
-        self.db_handler = db_handler
+    
+        self.api = APIHandler(api_base_url)
         print('SQLchatbot')
-        self.chatbot = SQLChatbot(db_handler)
+        self.chatbot = SQLChatbot(api_base_url)
 
         print(self.chatbot.get_response("total users"))
         
@@ -147,20 +147,23 @@ class AdminPanel(QMainWindow):
         selected_user = self.user_dropdown.currentText()
 
         # Fetch latest users
-        users = self.db_handler.fetch_all_users()
+        users = self.api.fetch_all_users()
+        print("user:",users)
         self.user_dropdown.clear()
         
         # Rebuild the user mapping
-        self.user_map = {user[0]: user[1] for user in users}
+        self.user_map = {user['username']: user['user_id'] for user in users}
+        print(self.user_map)
         self.user_dropdown.addItems(self.user_map.keys())
 
         # Restore the previous selection if it still exists
         if selected_user in self.user_map:
             self.user_dropdown.setCurrentText(selected_user)
+            print("selected_user",selected_user)
  
     # def populate_user_dropdown(self):
     #     print('refreshed+++++++++++++++++++++++++++++++++++++')
-    #     users = self.db_handler.fetch_all_users()
+    #     users = self.api.fetch_all_users()
     #     self.user_dropdown.clear()
     #     self.user_map = {user[0]: user[1] for user in users}
     #     self.user_dropdown.addItems(self.user_map.keys())
@@ -172,7 +175,9 @@ class AdminPanel(QMainWindow):
             return
         
         user_id = self.user_map.get(selected_user)
-        user_details = self.db_handler.fetch_user_details(user_id)
+        print("selected_userid",user_id)
+        user_details = self.api.fetch_user_details(user_id)
+        print("selected user details",user_details)
         if user_details:
             self.name_label.setText(f"User Name: {user_details['username']}")
             self.email_label.setText(f"Email: {user_details['email']}")
@@ -180,11 +185,11 @@ class AdminPanel(QMainWindow):
             self.status_label.setText(f"Status:{user_details['status']}")
             
         else:
-            QMessageBox.information(self, "Not Found", "No user found.")
-            self.name_label.setText("User Name: ")
-            self.email_label.setText("Email: ")
-            self.user_id_label.setText("User ID: ")
-            self.status_label.setText("Status:")
+            QMessageBox.information(self, "Not Found", "No user details found.")
+            # self.name_label.setText("User Name: ")
+            # self.email_label.setText("Email: ")
+            # self.user_id_label.setText("User ID: ")
+            # self.status_label.setText("Status:")
 
     def show_login_details(self):
         self.table.clear()
@@ -197,14 +202,20 @@ class AdminPanel(QMainWindow):
         start_date = self.start_date_edit.date().toString("yyyy-MM-dd")
         end_date = self.end_date_edit.date().toString("yyyy-MM-dd")
         
-        login_data = self.db_handler.fetch_login_details(user_id, start_date, end_date)
+        login_data = self.api.fetch_login_details(user_id, start_date, end_date)
         if login_data:
             self.table.setColumnCount(5)
             self.table.setHorizontalHeaderLabels(["Date", "Login Time", "Break Time", "Screen Time", "Logout Time"])
             self.table.setRowCount(len(login_data))
-            for row_idx, row_data in enumerate(login_data):
-                for col_idx, col_data in enumerate(row_data):
-                    self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(col_data)))
+            # for row_idx, row_data in enumerate(login_data):
+            #     for col_idx, col_data in enumerate(row_data):
+            #         self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(col_data)))
+            for row_idx, row in enumerate(login_data):
+                self.table.setItem(row_idx, 0, QTableWidgetItem(str(row.get("date", ""))))
+                self.table.setItem(row_idx, 1, QTableWidgetItem(str(row.get("login_time", ""))))
+                self.table.setItem(row_idx, 2, QTableWidgetItem(str(row.get("break_time", ""))))
+                self.table.setItem(row_idx, 3, QTableWidgetItem(str(row.get("screen_time", ""))))
+                self.table.setItem(row_idx, 4, QTableWidgetItem(str(row.get("logout_time", ""))))
         else:
             QMessageBox.information(self, "No Data", "No login details found.")
             self.table.setRowCount(0)
@@ -220,14 +231,20 @@ class AdminPanel(QMainWindow):
         start_date = self.start_date_edit.date().toString("yyyy-MM-dd")
         end_date = self.end_date_edit.date().toString("yyyy-MM-dd")
         
-        activity_data = self.db_handler.fetch_activity_details(user_id, start_date, end_date)
+        activity_data = self.api.fetch_activity_details(user_id, start_date, end_date)
         if activity_data:
             self.table.setColumnCount(4)
             self.table.setHorizontalHeaderLabels(["Date", "App Name", "URL", "Duration"])
             self.table.setRowCount(len(activity_data))
+            # for row_idx, row_data in enumerate(activity_data):
+            #     for col_idx, col_data in enumerate(row_data):
+            #         self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(col_data)))
             for row_idx, row_data in enumerate(activity_data):
-                for col_idx, col_data in enumerate(row_data):
-                    self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(col_data)))
+                self.table.setItem(row_idx, 0, QTableWidgetItem(str(row_data.get("date", ""))))
+                self.table.setItem(row_idx, 1, QTableWidgetItem(str(row_data.get("app_name", ""))))
+                self.table.setItem(row_idx, 2, QTableWidgetItem(str(row_data.get("url", ""))))
+                self.table.setItem(row_idx, 3, QTableWidgetItem(str(row_data.get("duration", ""))))
+
         else:
             QMessageBox.information(self, "No Data", "No activity details found.")
             self.table.setRowCount(0)
@@ -246,7 +263,7 @@ class AdminPanel(QMainWindow):
         start_date = self.start_date_edit.date().toString("yyyy-MM-dd")
         end_date = self.end_date_edit.date().toString("yyyy-MM-dd")
 
-        screenshot_data = self.db_handler.fetch_screenshots(user_id, start_date, end_date)
+        screenshot_data = self.api.fetch_screenshots(user_id, start_date, end_date)
 
         if not screenshot_data:
             QMessageBox.information(self, "No Screenshots", "No screenshots found for this user and date range.")
@@ -292,7 +309,7 @@ class AdminPanel(QMainWindow):
             return
 
         user_id = self.user_map.get(selected_user)
-        if self.db_handler.update_user_status(user_id, "Active"):  
+        if self.api.update_user_status(user_id, "Active"):  
             QMessageBox.information(self, "Success", "User activated successfully!")
             self.fetch_user_details() 
         else:
@@ -306,7 +323,7 @@ class AdminPanel(QMainWindow):
             return
 
         user_id = self.user_map.get(selected_user)
-        if self.db_handler.update_user_status(user_id, "Inactive"):  
+        if self.api.update_user_status(user_id, "Inactive"):  
             QMessageBox.information(self, "Success", "User deactivated successfully!")
             self.fetch_user_details()  
         else:

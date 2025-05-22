@@ -8,7 +8,7 @@ import bcrypt
 
 
 class RegistrationWindow(QDialog):
-    api_base_url = "http://16.170.141.240:5000"
+    api_base_url = "http://13.60.213.82:5000"
     def __init__(self, api_base_url):
         super().__init__()
         self.setWindowTitle("Register")

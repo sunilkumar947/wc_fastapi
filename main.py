@@ -27,7 +27,7 @@ if __name__ == "__main__":
     try:
         print("in")
         app = QApplication(sys.argv)
-        API_BASE_URL = "http://16.170.141.240:5000"
+        API_BASE_URL = "http://13.60.213.82:5000"
 
         # Resource paths (icon)
         icon_path = resource_path("assets/images/icon.ico")

@@ -31,7 +31,7 @@ class AppTrackerThread(QThread):
         self.last_app = None
         self.last_time = time.time()
         self.user_id =  user_id  # Replace with dynamic user ID if needed
-        self.api_url = "http://16.170.141.240:5000/api/app_usage"  # Replace with your Flask API URL
+        self.api_url = "http://13.60.213.82:5000/api/app_usage"  # Replace with your Flask API URL
         self.main_window = main_window
 
     def run(self):
